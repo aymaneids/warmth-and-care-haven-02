@@ -1,9 +1,18 @@
 
-import React from 'react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
+import React, { useState, useEffect } from 'react';
+import NavbarWithFooter from '../components/NavbarWithFooter';
 import PageHeader from '../components/PageHeader';
 import CallToAction from '../components/CallToAction';
+import { Link } from 'react-router-dom';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "../components/ui/pagination";
+import { Card, CardContent } from "../components/ui/card";
 
 const Gallery = () => {
   const galleryImages = [
@@ -69,8 +78,10 @@ const Gallery = () => {
     }
   ];
   
-  const [activeFilter, setActiveFilter] = React.useState('all');
-  const [filteredImages, setFilteredImages] = React.useState(galleryImages);
+  const [activeFilter, setActiveFilter] = useState('all');
+  const [filteredImages, setFilteredImages] = useState(galleryImages);
+  const [currentPage, setCurrentPage] = useState(1);
+  const imagesPerPage = 6;
   
   const filterCategories = [
     { label: 'All', value: 'all' },
@@ -82,17 +93,23 @@ const Gallery = () => {
     { label: 'Rehabilitation', value: 'rehabilitation' }
   ];
   
-  React.useEffect(() => {
+  useEffect(() => {
     if (activeFilter === 'all') {
       setFilteredImages(galleryImages);
     } else {
       setFilteredImages(galleryImages.filter(img => img.category === activeFilter));
     }
+    setCurrentPage(1); // Reset to first page when filter changes
   }, [activeFilter]);
   
+  // Get current images for pagination
+  const indexOfLastImage = currentPage * imagesPerPage;
+  const indexOfFirstImage = indexOfLastImage - imagesPerPage;
+  const currentImages = filteredImages.slice(indexOfFirstImage, indexOfLastImage);
+  const totalPages = Math.ceil(filteredImages.length / imagesPerPage);
+
   return (
-    <>
-      <Navbar />
+    <NavbarWithFooter>
       <main>
         <PageHeader 
           title="Gallery" 
@@ -127,35 +144,72 @@ const Gallery = () => {
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredImages.map((image, index) => (
-                <div 
+              {currentImages.map((image, index) => (
+                <Card 
                   key={index} 
-                  className="overflow-hidden rounded-xl shadow-md hover:shadow-lg transition-shadow"
+                  className="overflow-hidden rounded-xl border-0 shadow-md hover:shadow-lg transition-all duration-300"
                 >
-                  <img 
-                    src={image.url} 
-                    alt={image.alt} 
-                    className="w-full h-64 object-cover transition-transform hover:scale-105 duration-500"
-                  />
-                </div>
+                  <CardContent className="p-0">
+                    <div className="relative overflow-hidden group">
+                      <img 
+                        src={image.url} 
+                        alt={image.alt} 
+                        className="w-full h-64 object-cover transition-transform hover:scale-105 duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end">
+                        <p className="text-white p-4 font-medium">{image.alt}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
+            
+            {totalPages > 1 && (
+              <Pagination className="my-8">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                    />
+                  </PaginationItem>
+                  
+                  {Array.from({ length: totalPages }).map((_, index) => (
+                    <PaginationItem key={index}>
+                      <PaginationLink 
+                        onClick={() => setCurrentPage(index + 1)}
+                        isActive={currentPage === index + 1}
+                      >
+                        {index + 1}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+                  
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
             
             <div className="text-center mt-12">
               <p className="text-hope-text-light mb-4">
                 Want to see our facility in person? We'd love to show you around.
               </p>
-              <a href="/contact" className="btn-primary">
+              <Link to="/contact" className="btn-primary">
                 Schedule a Tour
-              </a>
+              </Link>
             </div>
           </div>
         </section>
         
         <CallToAction />
       </main>
-      <Footer />
-    </>
+    </NavbarWithFooter>
   );
 };
 
